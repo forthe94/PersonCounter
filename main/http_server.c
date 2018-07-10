@@ -159,7 +159,6 @@ void http_server_netconn_serve(struct netconn *conn) {
 		char *line = strtok_r(save_ptr, new_line, &save_ptr);
 
 		if(line) {
-
 			// default page
 			if(strstr(line, "GET / ")) {
 				netconn_write(conn, http_html_hdr, sizeof(http_html_hdr) - 1, NETCONN_NOCOPY);
@@ -227,17 +226,25 @@ void http_server_netconn_serve(struct netconn *conn) {
 #endif
 
 				bool found = false;
-				int lenS = 0, lenP = 0;
-				char *ssid = NULL, *password = NULL;
+				int lenS = 0, lenP = 0, lenServ = 0;
+				char *ssid = NULL, *password = NULL; char *server = NULL;
 				ssid = http_server_get_header(save_ptr, "X-Custom-ssid: ", &lenS);
 				password = http_server_get_header(save_ptr, "X-Custom-pwd: ", &lenP);
-
-				if(ssid && lenS <= MAX_SSID_SIZE && password && lenP <= MAX_PASSWORD_SIZE){
+				server = http_server_get_header(save_ptr, "X-Custom-server: ", &lenServ);
+#if WIFI_MANAGER_DEBUG
+				printf("Server IP: %s\n", server);
+				printf("ip lenght %d\n", lenServ);
+#endif
+				if((ssid && lenS <= MAX_SSID_SIZE && password && lenP <= MAX_PASSWORD_SIZE) && (lenServ == IP_LENGTH)){
 					wifi_config_t* config = wifi_manager_get_wifi_sta_config();
 					memset(config, 0x00, sizeof(wifi_config_t));
 					memcpy(config->sta.ssid, ssid, lenS);
 					memcpy(config->sta.password, password, lenP);
 
+
+					char* serverIP = wifi_manager_get_server_ip();
+					memset(serverIP, 0x00,  sizeof(char) * IP_LENGTH + 1);
+					memcpy(serverIP, server,  sizeof(char) * IP_LENGTH);
 #if WIFI_MANAGER_DEBUG
 					printf("http_server_netconn_serve: wifi_manager_connect_async() call\n");
 #endif

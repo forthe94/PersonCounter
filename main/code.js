@@ -66,6 +66,9 @@ $(document).ready(function(){
 		$( "#wifi" ).slideDown( "fast", function() {});
 	});
 	
+	$("#submit").on("clock", function(){
+		submitServer();
+	});
 	$("#join").on("click", function() {
 		performConnect();
 	});
@@ -165,14 +168,14 @@ function performConnect(){
 	$( "#connect" ).slideUp( "fast", function() {});
 	$( "#connect-wait" ).slideDown( "fast", function() {});
 	
-	
+	var server = $("#server").val();	
 	var pwd = $("#pwd").val();
 	$.ajax({
 		url: '/connect.json',
 		dataType: 'json',
 		method: 'POST',
 		cache: false,
-		headers: { 'X-Custom-ssid': selectedSSID, 'X-Custom-pwd': pwd },
+		headers: { 'X-Custom-ssid': selectedSSID, 'X-Custom-pwd': pwd, 'X-Custom-server': server},
 		data: { 'timestamp': Date.now()}
 	});
 

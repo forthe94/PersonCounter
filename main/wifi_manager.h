@@ -37,6 +37,9 @@ Contains the freeRTOS task and all necessary support
 extern "C" {
 #endif
 
+#define IP_LENGTH 14
+
+
 /**
  * @brief If WIFI_MANAGER_DEBUG is defined, additional debug information will be sent to the standard output.
  */
@@ -173,7 +176,7 @@ void wifi_manager( void * pvParameters );
 
 char* wifi_manager_get_ap_list_json();
 char* wifi_manager_get_ip_info_json();
-
+char* wifi_manager_get_server_ip();
 
 
 

@@ -53,15 +53,13 @@ Contains the freeRTOS task and all necessary support
 #include "wifi_manager.h"
 
 
-
-
 SemaphoreHandle_t wifi_manager_json_mutex = NULL;
 uint16_t ap_num = MAX_AP_NUM;
 wifi_ap_record_t *accessp_records; //[MAX_AP_NUM];
 char *accessp_json = NULL;
 char *ip_info_json = NULL;
 wifi_config_t* wifi_manager_config_sta = NULL;
-
+char *serverIP = NULL;
 /**
  * The actual WiFi settings in use
  */
@@ -132,6 +130,9 @@ esp_err_t wifi_manager_save_sta_config(){
 		esp_err = nvs_set_blob(handle, "settings", &wifi_settings, sizeof(wifi_settings));
 		if (esp_err != ESP_OK) return esp_err;
 
+		esp_err = nvs_set_blob(handle, "serverIP", serverIP, sizeof(char) * IP_LENGTH + 1);
+		if (esp_err != ESP_OK) return esp_err;
+
 		esp_err = nvs_commit(handle);
 		if (esp_err != ESP_OK) return esp_err;
 
@@ -149,6 +150,7 @@ esp_err_t wifi_manager_save_sta_config(){
 		printf("wifi_manager_wrote wifi_settings: sta_ip_addr: %s\n", ip4addr_ntoa(&wifi_settings.sta_static_ip_config.ip));
 		printf("wifi_manager_wrote wifi_settings: sta_gw_addr: %s\n", ip4addr_ntoa(&wifi_settings.sta_static_ip_config.gw));
 		printf("wifi_manager_wrote wifi_settings: sta_netmask: %s\n", ip4addr_ntoa(&wifi_settings.sta_static_ip_config.netmask));
+		printf("wifi_manager_wrote wifi_settings: serverIP: %s\n", serverIP);
 #endif
 	}
 
@@ -166,6 +168,11 @@ bool wifi_manager_fetch_wifi_sta_config(){
 		}
 		memset(wifi_manager_config_sta, 0x00, sizeof(wifi_config_t));
 		memset(&wifi_settings, 0x00, sizeof(struct wifi_settings_t));
+
+		if(serverIP == NULL){
+			serverIP = (char*)malloc(sizeof(char) * IP_LENGTH + 1);
+		}
+		memset(serverIP, 0x00, sizeof(char) * IP_LENGTH + 1);
 
 		/* allocate buffer */
 		size_t sz = sizeof(wifi_settings);
@@ -199,6 +206,17 @@ bool wifi_manager_fetch_wifi_sta_config(){
 		}
 		memcpy(&wifi_settings, buff, sz);
 
+		/* serverIP */
+		sz = sizeof(char) * IP_LENGTH + 1;
+		esp_err = nvs_get_blob(handle, "serverIP", buff, &sz);
+		ESP_ERROR_CHECK(esp_err);
+		if(esp_err != ESP_OK){
+			printf("didnt find serverIP\n");
+			return false;
+		}
+		memcpy(serverIP, buff, sz);
+
+
 		free(buff);
 		nvs_close(handle);
 
@@ -216,6 +234,8 @@ bool wifi_manager_fetch_wifi_sta_config(){
 		printf("wifi_manager_fetch_wifi_settings: sta_ip_addr: %s\n", ip4addr_ntoa(&wifi_settings.sta_static_ip_config.ip));
 		printf("wifi_manager_fetch_wifi_settings: sta_gw_addr: %s\n", ip4addr_ntoa(&wifi_settings.sta_static_ip_config.gw));
 		printf("wifi_manager_fetch_wifi_settings: sta_netmask: %s\n", ip4addr_ntoa(&wifi_settings.sta_static_ip_config.netmask));
+		printf("wifi_manager_fetch_wifi_settings: serverIP: %s\n", serverIP);
+
 #endif
 		return wifi_manager_config_sta->sta.ssid[0] != '\0';
 
@@ -337,6 +357,9 @@ char* wifi_manager_get_ap_list_json(){
 	return accessp_json;
 }
 
+char* wifi_manager_get_server_ip(){
+	return serverIP;
+}
 
 esp_err_t wifi_manager_event_handler(void *ctx, system_event_t *event)
 {
@@ -409,6 +432,8 @@ void wifi_manager_destroy(){
 	accessp_json = NULL;
 	free(ip_info_json);
 	ip_info_json = NULL;
+	free(serverIP);
+	serverIP = NULL;
 	if(wifi_manager_config_sta){
 		free(wifi_manager_config_sta);
 		wifi_manager_config_sta = NULL;
@@ -434,6 +459,8 @@ void wifi_manager( void * pvParameters ){
 	ip_info_json = (char*)malloc(sizeof(char) * JSON_IP_INFO_SIZE);
 	wifi_manager_clear_ip_info_json();
 	wifi_manager_config_sta = (wifi_config_t*)malloc(sizeof(wifi_config_t));
+	serverIP = (char*)malloc(sizeof(char) * IP_LENGTH + 1);
+	memset(serverIP, 0x00, sizeof(char) * IP_LENGTH + 1);
 	memset(wifi_manager_config_sta, 0x00, sizeof(wifi_config_t));
 	memset(&wifi_settings.sta_static_ip_config, 0x00, sizeof(tcpip_adapter_ip_info_t));
 		IP4_ADDR(&wifi_settings.sta_static_ip_config.ip, 192, 168, 0, 10);
