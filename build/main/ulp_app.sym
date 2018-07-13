@@ -1,0 +1,15 @@
+changed T 0000005c 
+debounce_counter B 000000c4 
+debounce_max_count B 000000c8 
+edge_count B 000000cc 
+edge_count_to_wake_up B 000000d0 
+edge_detected T 00000078 
+entry T 00000000 
+io_number B 000000d4 
+next_edge B 000000c0 
+start T 00000000 
+test B 000000b4 
+wake_period B 000000bc 
+wake_set B 000000b8 
+wake_time B 000000b0 
+wake_up T 0000003c 

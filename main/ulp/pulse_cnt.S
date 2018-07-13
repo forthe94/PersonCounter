@@ -86,38 +86,38 @@ io_number:
 	.global entry
 entry:
 
-	/* Read 16 high bits to r0 */
+	/* Read 16 high bits to r0
 	READ_RTC_REG(RTC_CNTL_TIME0_REG, 16, 16)
-	/* Check if wake set */
+	/* Check if wake set
 	move r3, 1
 	move r2, wake_set
 	ld r2, r2, 0
 	sub r2, r3, r2
 	jump start, ov
-	/* Load wake_period to r3 */
+	/* Load wake_period to r3
 	move r3, wake_period
 	ld r3, r3, 0
-	/* Add current time to wake_period */
+	/* Add current time to wake_period
 	add r3, r3, r0
 	move r2, wake_time
-	/* Store r3 to wake_time */
+	/* Store r3 to wake_time
 	st r3, r2, 0
-	/* wake_set = 1 */
+	/* wake_set = 1
 	move r2, wake_set
 	move r3, 2
-	st r3, r2, 0
+	st r3, r2, 0 */
 
 	.global start
 start:
 	/* Read 16 high bits to r0 */
-	READ_RTC_REG(RTC_CNTL_TIME0_REG, 16, 16)
+/*	READ_RTC_REG(RTC_CNTL_TIME0_REG, 16, 16)
 
 	move r3, wake_time
 	ld r3, r3, 0
 	sub r3, r3, r0
 	move r2, test
 	st r3, r2, 0
-	jump wake_up, ov
+	jump wake_up, ov */
 	/* Read the value of lower 16 RTC IOs into R0 */
 	READ_RTC_FIELD(RTC_GPIO_IN_REG, RTC_GPIO_IN_NEXT)
 	/* Load io_number, extract the state of input */
@@ -190,10 +190,10 @@ edge_detected:
 	add r2, r2, 1
 	st r2, r3, 0
 	/* Compare edge_count to edge_count_to_wake_up */
-	move r3, edge_count_to_wake_up
+/*	move r3, edge_count_to_wake_up
 	ld r3, r3, 0
 	sub r3, r3, r2
-	jump wake_up, eq
+	jump wake_up, eq */
 	/* Not yet. End program */
 	halt
 
