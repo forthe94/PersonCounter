@@ -108,12 +108,8 @@ void app_main()
     esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
     if (cause == ESP_SLEEP_WAKEUP_TIMER) {
     	printf("Timer wake up, need to send pulse_count\n");
-	 	update_pulse_count();
-	    printf("Entering deep sleep\n\n");
-	    ESP_ERROR_CHECK(esp_sleep_enable_ulp_wakeup());
-		ESP_ERROR_CHECK(esp_deep_sleep_enable_timer_wakeup(5000000));
-		vTaskDelay(10);
-		esp_deep_sleep_start();
+//	 	update_pulse_count();
+	    tcp_client_start();
 	}
 	else {
 		/* Look for saved sta config */
@@ -122,7 +118,6 @@ void app_main()
 			/* if find one */
 			printf("Have wifi config so init ULP\n");
 			init_ulp_program();
-		    printf("Entering deep sleep\n\n");
 		    tcp_client_start();
 /*		    ESP_ERROR_CHECK(esp_sleep_enable_ulp_wakeup());
 			ESP_ERROR_CHECK(esp_deep_sleep_enable_timer_wakeup(5000000));
@@ -193,7 +188,12 @@ void tcp_client(void *pvParam){
     struct sockaddr_in tcpServerAddr;
     tcpServerAddr.sin_addr.s_addr = inet_addr(TCPServerIP);
     tcpServerAddr.sin_family = AF_INET;
-    tcpServerAddr.sin_port = htons( 3010 );
+    tcpServerAddr.sin_port = htons( 33333 );
+
+    uint32_t pulse_count_from_ulp = (ulp_edge_count & UINT16_MAX) / 2;
+    /* keep 1 edge for next time if even */
+    ulp_edge_count = ulp_edge_count % 2;
+
     int s, r;
     char recv_buf[64];
     while(1){
@@ -212,7 +212,9 @@ void tcp_client(void *pvParam){
             continue;
         }
         ESP_LOGI(TAG, "... connected \n");
-        if( write(s , MESSAGE , strlen(MESSAGE)) < 0)
+        printf("pulse_count_from_ulp= %d\n", pulse_count_from_ulp);
+        printf("size of pulse_count_from_ulp= %d\n", sizeof(pulse_count_from_ulp));
+        if( write(s , &pulse_count_from_ulp , 1) < 0)
         {
             ESP_LOGE(TAG, "... Send failed \n");
             close(s);
@@ -229,6 +231,12 @@ void tcp_client(void *pvParam){
         } while(r > 0);
         ESP_LOGI(TAG, "... done reading from socket. Last read return=%d errno=%d\r\n", r, errno);
         close(s);
+	    printf("Entering deep sleep\n\n");
+
+	    ESP_ERROR_CHECK(esp_sleep_enable_ulp_wakeup());
+		ESP_ERROR_CHECK(esp_deep_sleep_enable_timer_wakeup(5000000));
+		vTaskDelay(10);
+		esp_deep_sleep_start();
         ESP_LOGI(TAG, "... new request in 5 seconds");
         vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
