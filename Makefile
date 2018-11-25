@@ -3,7 +3,7 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := wifi_manager
+PROJECT_NAME := PersonCounter
 
 include $(IDF_PATH)/make/project.mk
 

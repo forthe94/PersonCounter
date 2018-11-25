@@ -37,7 +37,7 @@ Contains the freeRTOS task and all necessary support
 extern "C" {
 #endif
 
-#define IP_LENGTH 14
+#define MIN_IP_LENGTH 12
 
 
 /**

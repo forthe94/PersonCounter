@@ -63,11 +63,12 @@ SOFTWARE.
 #include "http_server.h"
 #include "wifi_manager.h"
 
-#define SSID "Tecon412"
-#define PASSPHARSE "Tecon412"
+#define SSID "TP-LINK_4814"
+#define PASSPHARSE "83954092"
 #define MESSAGE "HelloTCPServer"
-#define TCPServerIP "192.168.51.132"
-
+#define TCPServerIP "192.168.0.104"
+#define SLEEP_TIME 5000000
+#define INPUT_PIN 13            //Входной пин
 static EventGroupHandle_t wifi_event_group;
 const int CONNECTED_BIT = BIT0;
 static const char *TAG="tcp_client";
@@ -106,9 +107,11 @@ void app_main()
 
 
     esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+
     if (cause == ESP_SLEEP_WAKEUP_TIMER) {
+        wifi_manager_fetch_wifi_sta_config();
     	printf("Timer wake up, need to send pulse_count\n");
-//	 	update_pulse_count();
+        update_pulse_count();
 	    tcp_client_start();
 	}
 	else {
@@ -119,14 +122,15 @@ void app_main()
 			printf("Have wifi config so init ULP\n");
 			init_ulp_program();
 		    tcp_client_start();
-/*		    ESP_ERROR_CHECK(esp_sleep_enable_ulp_wakeup());
-			ESP_ERROR_CHECK(esp_deep_sleep_enable_timer_wakeup(5000000));
-			vTaskDelay(10);
-			esp_deep_sleep_start();*/
+            ESP_ERROR_CHECK(esp_sleep_enable_ulp_wakeup());
+            ESP_ERROR_CHECK(esp_deep_sleep_enable_timer_wakeup(SLEEP_TIME));
+            vTaskDelay(10);     // Задержка для вывода в консоль
+            esp_deep_sleep_start();
 		}
 		else
 		{
 		/* Not found go to wifi_manager */
+        printf("STA config not found, starting wifi manager\n");
 
 		/* start the HTTP Server task */
 		xTaskCreate(&http_server, "http_server", 2048, NULL, 5, &task_http_server);
@@ -158,6 +162,7 @@ static esp_err_t event_handler(void *ctx, system_event_t *event)
 {
     switch(event->event_id) {
     case SYSTEM_EVENT_STA_START:
+        ESP_LOGI(TAG, "Connecting wifi\n");
         wifi_connect();
         break;
     case SYSTEM_EVENT_STA_GOT_IP:
@@ -190,6 +195,8 @@ void tcp_client(void *pvParam){
     tcpServerAddr.sin_family = AF_INET;
     tcpServerAddr.sin_port = htons( 33333 );
 
+    ESP_LOGI(TAG, "tcp client ulp_edge_count=%d \n",ulp_edge_count);
+
     uint32_t pulse_count_from_ulp = (ulp_edge_count & UINT16_MAX) / 2;
     /* keep 1 edge for next time if even */
     ulp_edge_count = ulp_edge_count % 2;
@@ -197,7 +204,9 @@ void tcp_client(void *pvParam){
     int s, r;
     char recv_buf[64];
     while(1){
+        ESP_LOGI(TAG,"Starting tcp client cycle\n");
         xEventGroupWaitBits(wifi_event_group,CONNECTED_BIT,false,true,portMAX_DELAY);
+        ESP_LOGI(TAG,"Connected to wifi\n");
         s = socket(AF_INET, SOCK_STREAM, 0);
         if(s < 0) {
             ESP_LOGE(TAG, "... Failed to allocate socket.\n");
@@ -205,7 +214,7 @@ void tcp_client(void *pvParam){
             continue;
         }
         ESP_LOGI(TAG, "... allocated socket\n");
-         if(connect(s, (struct sockaddr *)&tcpServerAddr, sizeof(tcpServerAddr)) != 0) {
+        if(connect(s, (struct sockaddr *)&tcpServerAddr, sizeof(tcpServerAddr)) != 0) {
             ESP_LOGE(TAG, "... socket connect failed errno=%d \n", errno);
             close(s);
             vTaskDelay(4000 / portTICK_PERIOD_MS);
@@ -214,7 +223,7 @@ void tcp_client(void *pvParam){
         ESP_LOGI(TAG, "... connected \n");
         printf("pulse_count_from_ulp= %d\n", pulse_count_from_ulp);
         printf("size of pulse_count_from_ulp= %d\n", sizeof(pulse_count_from_ulp));
-        if( write(s , &pulse_count_from_ulp , 1) < 0)
+        if( write(s , &pulse_count_from_ulp , sizeof(pulse_count_from_ulp)) < 0)
         {
             ESP_LOGE(TAG, "... Send failed \n");
             close(s);
@@ -234,7 +243,7 @@ void tcp_client(void *pvParam){
 	    printf("Entering deep sleep\n\n");
 
 	    ESP_ERROR_CHECK(esp_sleep_enable_ulp_wakeup());
-		ESP_ERROR_CHECK(esp_deep_sleep_enable_timer_wakeup(5000000));
+        ESP_ERROR_CHECK(esp_deep_sleep_enable_timer_wakeup(SLEEP_TIME));
 		vTaskDelay(10);
 		esp_deep_sleep_start();
         ESP_LOGI(TAG, "... new request in 5 seconds");
@@ -275,7 +284,7 @@ static void init_ulp_program()
     ulp_debounce_counter = 3;
     ulp_debounce_max_count = 3;
     ulp_next_edge = 0;
-    ulp_io_number = 11; /* GPIO0 is RTC_IO 11 */
+    ulp_io_number = INPUT_PIN; /* GPIO0 is RTC_IO 13 */
     ulp_edge_count_to_wake_up = 10;
     /* Initialize GPIO0 as RTC IO, input, disable pullup and pulldown */
     gpio_num_t gpio_num = GPIO_NUM_0;
@@ -321,7 +330,7 @@ static void update_pulse_count()
     /* ULP program counts signal edges, convert that to the number of pulses */
     uint32_t pulse_count_from_ulp = (ulp_edge_count & UINT16_MAX) / 2;
     /* In case of an odd number of edges, keep one until next time */
-    ulp_edge_count = ulp_edge_count % 2;
+    //ulp_edge_count = ulp_edge_count % 2;
     printf("Pulse count from ULP: %5d\n", pulse_count_from_ulp);
 
     /* Save the new pulse count to NVS */

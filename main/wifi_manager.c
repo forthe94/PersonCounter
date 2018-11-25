@@ -130,7 +130,7 @@ esp_err_t wifi_manager_save_sta_config(){
 		esp_err = nvs_set_blob(handle, "settings", &wifi_settings, sizeof(wifi_settings));
 		if (esp_err != ESP_OK) return esp_err;
 
-		esp_err = nvs_set_blob(handle, "serverIP", serverIP, sizeof(char) * IP_LENGTH + 1);
+        esp_err = nvs_set_blob(handle, "serverIP", serverIP, sizeof(char) * MIN_IP_LENGTH + 1);
 		if (esp_err != ESP_OK) return esp_err;
 
 		esp_err = nvs_commit(handle);
@@ -170,9 +170,9 @@ bool wifi_manager_fetch_wifi_sta_config(){
 		memset(&wifi_settings, 0x00, sizeof(struct wifi_settings_t));
 
 		if(serverIP == NULL){
-			serverIP = (char*)malloc(sizeof(char) * IP_LENGTH + 1);
+            serverIP = (char*)malloc(sizeof(char) * MIN_IP_LENGTH + 1);
 		}
-		memset(serverIP, 0x00, sizeof(char) * IP_LENGTH + 1);
+        memset(serverIP, 0x00, sizeof(char) * MIN_IP_LENGTH + 1);
 
 		/* allocate buffer */
 		size_t sz = sizeof(wifi_settings);
@@ -207,7 +207,7 @@ bool wifi_manager_fetch_wifi_sta_config(){
 		memcpy(&wifi_settings, buff, sz);
 
 		/* serverIP */
-		sz = sizeof(char) * IP_LENGTH + 1;
+        sz = sizeof(char) * MIN_IP_LENGTH + 1;
 		esp_err = nvs_get_blob(handle, "serverIP", buff, &sz);
 		ESP_ERROR_CHECK(esp_err);
 		if(esp_err != ESP_OK){
@@ -459,8 +459,8 @@ void wifi_manager( void * pvParameters ){
 	ip_info_json = (char*)malloc(sizeof(char) * JSON_IP_INFO_SIZE);
 	wifi_manager_clear_ip_info_json();
 	wifi_manager_config_sta = (wifi_config_t*)malloc(sizeof(wifi_config_t));
-	serverIP = (char*)malloc(sizeof(char) * IP_LENGTH + 1);
-	memset(serverIP, 0x00, sizeof(char) * IP_LENGTH + 1);
+    serverIP = (char*)malloc(sizeof(char) * MIN_IP_LENGTH + 1);
+    memset(serverIP, 0x00, sizeof(char) * MIN_IP_LENGTH + 1);
 	memset(wifi_manager_config_sta, 0x00, sizeof(wifi_config_t));
 	memset(&wifi_settings.sta_static_ip_config, 0x00, sizeof(tcpip_adapter_ip_info_t));
 		IP4_ADDR(&wifi_settings.sta_static_ip_config.ip, 192, 168, 0, 10);

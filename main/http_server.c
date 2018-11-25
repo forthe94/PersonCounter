@@ -235,7 +235,7 @@ void http_server_netconn_serve(struct netconn *conn) {
 				printf("Server IP: %s\n", server);
 				printf("ip lenght %d\n", lenServ);
 #endif
-				if((ssid && lenS <= MAX_SSID_SIZE && password && lenP <= MAX_PASSWORD_SIZE) && (lenServ == IP_LENGTH)){
+                if((ssid && lenS <= MAX_SSID_SIZE && password && lenP <= MAX_PASSWORD_SIZE) && (lenServ >= MIN_IP_LENGTH)){
 					wifi_config_t* config = wifi_manager_get_wifi_sta_config();
 					memset(config, 0x00, sizeof(wifi_config_t));
 					memcpy(config->sta.ssid, ssid, lenS);
@@ -243,8 +243,8 @@ void http_server_netconn_serve(struct netconn *conn) {
 
 
 					char* serverIP = wifi_manager_get_server_ip();
-					memset(serverIP, 0x00,  sizeof(char) * IP_LENGTH + 1);
-					memcpy(serverIP, server,  sizeof(char) * IP_LENGTH);
+                    memset(serverIP, 0x00,  sizeof(char) * MIN_IP_LENGTH + 1);
+                    memcpy(serverIP, server,  sizeof(char) * MIN_IP_LENGTH);
 #if WIFI_MANAGER_DEBUG
 					printf("http_server_netconn_serve: wifi_manager_connect_async() call\n");
 #endif
